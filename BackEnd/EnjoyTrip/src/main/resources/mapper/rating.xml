@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.rating.model.mapper.RatingMapper">	
+	<resultMap type="RatingDto" id="ratingDto">
+		<result column="rating_id" property="ratingId"/>		
+		<result column="content_id" property="contentId"/>
+		<result column="user_id" property="userId"/>
+		<result column="rating" property="rating"/>
+		<result column="title" property="title"/>
+		<result column="description" property="description"/>
+		<result column="visit_date" property="visitDate"/>
+		<result column="update_date" property="updateDate"/>
+	</resultMap>
+	
+	<resultMap type="RatingCountDto" id="ratingCountDto">
+		<result column="rate_cnt" property="rateCnt"/>
+		<result column="rate_1" property="rate1"/>		
+		<result column="rate_2" property="rate2"/>
+		<result column="rate_3" property="rate3"/>
+		<result column="rate_4" property="rate4"/>
+		<result column="rate_5" property="rate5"/>
+		<result column="avg_rate" property="avgRate"/>
+	</resultMap>
+	
+	<sql id="order">
+		<choose>
+			<when test="order != null and order != ''">
+				order by ${order}
+			</when>
+			<otherwise>
+				order by A.update_date desc
+			</otherwise>
+		</choose>
+	</sql>
+	
+	<sql id="filter_rate">
+		<if test="rate != null and rate != 0">
+			and A.rating = ${rate}
+		</if>
+	</sql>
+	
+	<select id="attractionRating" parameterType="int" resultMap="ratingDto">
+		select A.*, count(B.rating_id) islike from attraction_rating A
+		left join rating_like B on A.rating_id = B.rating_id
+		where A.content_id = ${contentId}
+		<include refid="filter_rate"></include>
+		group by A.rating_id
+		<include refid="order"></include>
+	</select>
+	
+	<select id="countRating" parameterType="int" resultMap="ratingCountDto">
+		select count(*) rate_cnt, 
+		count(case when rating=1 then 1 end) rate_1,
+			count(case when rating=2 then 1 end) rate_2,
+			count(case when rating=3 then 1 end) rate_3,
+			count(case when rating=4 then 1 end) rate_4,
+			count(case when rating=5 then 1 end) rate_5,
+			round(avg(rating), 1) avg_rate
+		from attraction_rating
+		where content_id = ${contentId}
+		group by content_id;
+	</select>
+	
+	<insert id="insertRating" parameterType="ratingDto">
+		insert into attraction_rating (content_id, user_id, rating, title, description, visit_date, update_date)
+		values (${contentId}, #{userId}, ${rating}, #{title}, #{description}, #{visitDate}, now())
+	</insert>
+	
+	<update id="updateRating" parameterType="ratingDto">
+		update attraction_rating set
+		rating = ${rating}, title = #{title}, description=#{description}
+		, visit_date=#{visitDate}, update_date=now() 
+		where rating_id = ${ratingId}
+	</update>
+	
+</mapper>

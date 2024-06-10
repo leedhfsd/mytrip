@@ -1,0 +1,89 @@
+const param = ref({
+	pgno : num
+	spp : num(store 선언 한 페이지에 가져올 갯수)
+	word : String
+	sort : String(fav, rating, ratCnt)
+	sido : num
+	gugun : num
+	contentType : [](보류)
+})
+
+1. 관광지 리스트(/attraction)
+ - 정렬(좋아요, 평점, 리뷰갯수 순서대로) list 제한 수는 12개까지
+   (/attraction/list/{param}) - 각각 다른 ref
+   pgno : 1 / spp : (.env에 설정한것, 굳이 안해도 됨)/ word : 검색어(메인페이지의 경우 "")
+   sort : fav, rating, ratCnt 가져올 것
+ 
+ 1-1. 여행지 검색
+  - 지역기준 검색(sigugun)
+    (/attraction/list/{param})
+	word, sido, gugun, contentType 필요(없어도 됨)
+  - 필터(시/도, 12:관광지,14:문화시설,15:축제공연행사,25:여행코스,28:레포츠,32:숙박,38:쇼핑,39:음식점)
+  - 검색어 concat(title, addr1)
+  - 검색어 입력 시 자동완성 (10개까지 일치하는 항목)
+  - 여행지 상세보기(/attraction/detail/{contentId})
+    : contentId 기준으로 props, 추가로 rating select(/rating/{contentId} 호출)
+ 
+3. 여행계획 생성, 조회(/plan)
+const plan = ref({mm 참고})
+
+ - 계획 생성(user_plan)
+	최초 생성 시 한번에 넘기기 위해 class 필요(PlanDto{UserPlan, PlanDetail})
+	@PostMapping @RequestBody @Parameter(PlanDto)
+	Service에서 user_plan insert 이후 plan_detail insert
+ - 계획 디테일 생성
+ - 계획 삭제(user_plan, plan_detail)
+	@DeleteMapping (plan_id)
+	
+ - 계획 수정
+	@PutMapping @RequestBody @Parameter(PlanDto)
+	
+ - 내 계획 조회(detail)
+ 
+ - 최근 추가된 여행계획(order by update_date desc)
+ 
+ - 타 유저 여행계획 검색(도시 or 여행지(detail) 기준으로 검색) - 후순위
+ 
+
+4. 여행지 리뷰(/rating)
+const rating = ref({
+	contentId : num
+	rating : num
+	userId : String
+	title : String
+	description : String
+	visit_date : String?
+})
+	
+ - 여행지마다 작성, 한 사람이 하나의 여행지에 대해 다수 작성 가능
+ @PostMapping(/{param})
+ - 리뷰 수정, 삭제
+ - 최상단에 자신의 리뷰 조회
+ - 리뷰 조회
+ @GetMapping(/{contentId})
+
+5. 유저(/user)
+const user = ref({
+	id : String
+	pw : String
+})
+
+ - 회원가입
+ @PostMapping()
+ - 로그인
+ @GetMapping(/{param})
+  id유효 검사 후 id/pw 검사
+  
+ - 로그아웃
+ 
+ - ID찾기, 비밀번호 찾기
+ @GetMapping(/find/{param})
+ 
+ - 회원탈퇴
+ @DeleteMapping(/{param})
+ 
+ 5-1. 마이페이지 (/mypage)
+  - 좋아요 여행지 Get(/fav/{userId})
+  - 작성한 리뷰(상세보기 시 여행지 리뷰로 이동) Get(/rating/{userId})
+  - 작성한 계획 Get(/plan/{userId})
+  - 회원정보 수정 Put(/userMod/{userId}) 

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.attraction.model.mapper.AttractionMapper">
+	<resultMap type="AttractionDto" id="attractionDto">
+		<result column="content_id" property="contentId"/>		
+		<result column="title" property="title"/>
+		<result column="addr1" property="addr1"/>
+		<result column="first_image" property="firstImage"/>
+		<result column="first_image2" property="firstImage2"/>
+		<result column="content_type_id" property="contentTypeId"/>
+		<result column="content_name" property="contentName"/>
+		<result column="rating" property="rating"/>
+		<result column="rating_count" property="ratingCount"/>
+		<result column="latitude" property="latitude"/>
+		<result column="longitude" property="longitude"/>
+		<result column="homepage" property="homepage"/>
+		<result column="overview" property="overview"/>
+		<result column="tel" property="tel"/>
+		<result column="favorite" property="favorite"/>
+		<result column="sido_code" property="sidoCode"/>
+		<result column="gugun_code" property="gugunCode"/>
+		<result column="islike" property="isLike"/>
+	</resultMap>
+	
+	<resultMap type="AttractionLocationDto" id="attractionLocation">
+		<result column="sido_code" property="sidoCode"/>
+		<result column="gugun_code" property="gugunCode"/>
+		<result column="sigu_name" property="siguName"/>
+	</resultMap>
+	
+	<resultMap type="AttractionContentDto" id="attractionContent">
+		<result column="content_type_id" property="contentTypeId"/>
+		<result column="content_name" property="contentName"/>
+	</resultMap>
+	
+	<sql id="filter">
+		<if test="sido != null and sido != 0">
+			and A.sido_code = ${sido}
+		</if>
+		<if test="gugun != null and gugun != 0">
+			and A.gugun_code = ${gugun}
+		</if>
+		<if test="contentTypeId != null and contentTypeId != 0">
+			and A.content_type_id = ${contentTypeId}
+		</if>
+		<if test="word != null and word != ''">
+			and concat(A.title, A.addr1) like concat('%', #{word}, '%')
+		</if>
+	</sql>
+	
+	<sql id="sorting">
+		<if test="sort != null and sort != ''">
+			order by ${sort} desc
+		</if>
+	</sql>
+	
+	<sql id="login">
+		<choose>
+			<when test="userId != null and userId != ''">
+				left join (select content_id from user_fav where user_id = #{userId}) B on A.content_id = B.content_id
+			</when>
+			<otherwise>
+				left join (select null content_id from dual) B on A.content_id = B.content_id
+			</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="listAttraction" parameterType="map" resultMap="attractionDto">
+		select A.*, !isnull(B.content_id) islike from view_attraction_list A
+		<include refid="login"></include>
+		<where>
+			<include refid="filter"></include>
+		</where>
+		<include refid="sorting"></include>
+		limit #{start}, #{listsize}
+	</select>
+	
+	<select id="getTotalAttraction" parameterType="map" resultType="int">
+		select count(*) from view_attraction_list A
+		<where>
+			<include refid="filter"></include>
+		</where>
+	</select>
+	
+	<select id="attractionDetail" parameterType="map" resultMap="attractionDto">
+		select A.*, !isnull(B.content_id) islike from view_attraction_detail A
+		<include refid="login"></include>
+		where A.content_id = ${contentId}
+	</select>
+	
+	<delete id="attractionLike" parameterType="map">
+		insert into user_fav(user_id, content_id) 
+		values(#{userId}, ${contentId})
+	</delete>
+	
+	<delete id="attractionDislike" parameterType="map">
+		delete from user_fav
+		where user_id = #{userId} and content_id = ${contentId} 
+	</delete>
+	
+	<select id="attractionLocation" resultMap="attractionLocation">
+		select * from sigugun
+		order by sigu_name
+	</select>
+	
+	<select id="attractionContent" resultMap="attractionContent">
+		select * from content_code
+		order by content_type_id
+	</select>
+	
+	<select id="attractionPlan" parameterType="int" resultMap="attractionDto">
+		select A.* from view_attraction_list A
+		inner join (select B.content_id, B.plan_index, B.plan_day from plan_detail B
+		where B.plan_id = ${planId}) C on A.content_id = C.content_id
+		order by C.plan_day, C.plan_index;
+	</select>
+	
+</mapper>
